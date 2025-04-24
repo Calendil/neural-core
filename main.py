@@ -1,27 +1,31 @@
 from fastapi import FastAPI
 from sqlmodel import SQLModel, Field, create_engine, Session
 
-app = FastAPI()
-
-engine = create_engine("sqlite:///memory.db")
-
-class Memory(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+# Define the MemoryEntry model
+class MemoryEntry(SQLModel, table=True):
+    id: int = Field(default=None, primary_key=True)
+    title: str
     content: str
 
-@app.on_event("startup")
-def on_startup():
-    SQLModel.metadata.create_all(engine)
+# Connect to the SQLite database
+DATABASE_URL = "sqlite:///./test.db"  # Change this URL if using a different database
+engine = create_engine(DATABASE_URL, echo=True)
+
+# Create the tables if they don't exist
+SQLModel.metadata.create_all(engine)
+
+# Initialize the FastAPI app
+app = FastAPI()
 
 @app.get("/")
 def read_root():
     return {"message": "Your FastAPI app is live!"}
 
 @app.post("/memory")
-def create_memory(content: str):
-    memory = Memory(content=content)
+def create_memory_entry(memory_entry: MemoryEntry):
+    # Create a new MemoryEntry in the database
     with Session(engine) as session:
-        session.add(memory)
+        session.add(memory_entry)
         session.commit()
-        session.refresh(memory)
-    return memory
+        session.refresh(memory_entry)
+    return memory_entry
