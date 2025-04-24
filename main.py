@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from sqlmodel import SQLModel, Field, create_engine, Session, select
 
 # Define the MemoryEntry model
@@ -33,3 +33,29 @@ def get_memories():
     with Session(engine) as session:
         memories = session.exec(select(MemoryEntry)).all()
     return {"memories": [memory.content for memory in memories]}
+
+# PUT request to update an existing memory entry by ID
+@app.put("/memory/{memory_id}")
+def update_memory(memory_id: int, memory_entry: MemoryEntry):
+    with Session(engine) as session:
+        existing_memory = session.get(MemoryEntry, memory_id)
+        if existing_memory:
+            existing_memory.title = memory_entry.title
+            existing_memory.content = memory_entry.content
+            session.commit()
+            session.refresh(existing_memory)
+            return {"message": f"Memory with ID {memory_id} updated."}
+        else:
+            raise HTTPException(status_code=404, detail="Memory not found")
+
+# DELETE request to remove a memory entry by ID
+@app.delete("/memory/{memory_id}")
+def delete_memory(memory_id: int):
+    with Session(engine) as session:
+        memory_to_delete = session.get(MemoryEntry, memory_id)
+        if memory_to_delete:
+            session.delete(memory_to_delete)
+            session.commit()
+            return {"message": f"Memory with ID {memory_id} deleted."}
+        else:
+            raise HTTPException(status_code=404, detail="Memory not found")
