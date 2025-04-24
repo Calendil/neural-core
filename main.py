@@ -1,16 +1,22 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Path, Body
 from sqlmodel import SQLModel, Field, create_engine, Session, select
+from typing import Optional
 
 # Define the MemoryEntry model
 class MemoryEntry(SQLModel, table=True):
-    id: int = Field(default=None, primary_key=True)
+    id: Optional[int] = Field(default=None, primary_key=True)
     title: str
     content: str
+
+# Update model for partial updates
+class MemoryUpdate(SQLModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
 
 # Connect to the SQLite database
 DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(DATABASE_URL, echo=True)
-SQLModel.metadata.create_all(engine)  # Ensure tables are created
+SQLModel.metadata.create_all(engine)
 
 # Initialize the FastAPI app
 app = FastAPI()
@@ -19,7 +25,7 @@ app = FastAPI()
 def read_root():
     return {"message": "Your FastAPI app is live!"}
 
-# POST request for creating a memory entry
+# Create a memory entry
 @app.post("/memory")
 def create_memory_entry(memory_entry: MemoryEntry):
     with Session(engine) as session:
@@ -28,28 +34,32 @@ def create_memory_entry(memory_entry: MemoryEntry):
         session.refresh(memory_entry)
     return memory_entry
 
-# GET request to retrieve all memory entries
+# Get all memory entries
 @app.get("/memory")
 def get_memories():
     with Session(engine) as session:
         memories = session.exec(select(MemoryEntry)).all()
     return {"memories": [memory.content for memory in memories]}
 
-# PUT request to update an existing memory entry by ID
+# Update a memory entry partially
 @app.put("/memory/{memory_id}")
-def update_memory(memory_id: int, memory_entry: MemoryEntry):
+def update_memory(memory_id: int = Path(...), memory_update: MemoryUpdate = Body(...)):
     with Session(engine) as session:
         existing_memory = session.get(MemoryEntry, memory_id)
-        if existing_memory:
-            existing_memory.title = memory_entry.title
-            existing_memory.content = memory_entry.content
-            session.commit()
-            session.refresh(existing_memory)
-            return {"message": f"Memory with ID {memory_id} updated."}
-        else:
+        if not existing_memory:
             raise HTTPException(status_code=404, detail="Memory not found")
+        
+        if memory_update.title is not None:
+            existing_memory.title = memory_update.title
+        if memory_update.content is not None:
+            existing_memory.content = memory_update.content
+        
+        session.add(existing_memory)
+        session.commit()
+        session.refresh(existing_memory)
+        return {"message": f"Memory with ID {memory_id} updated."}
 
-# DELETE request to remove a memory entry by ID
+# Delete a memory entry
 @app.delete("/memory/{memory_id}")
 def delete_memory(memory_id: int):
     with Session(engine) as session:
