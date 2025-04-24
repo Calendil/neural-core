@@ -21,11 +21,18 @@ app = FastAPI()
 def read_root():
     return {"message": "Your FastAPI app is live!"}
 
+# POST request for creating a memory entry
 @app.post("/memory")
 def create_memory_entry(memory_entry: MemoryEntry):
-    # Create a new MemoryEntry in the database
     with Session(engine) as session:
         session.add(memory_entry)
         session.commit()
         session.refresh(memory_entry)
     return memory_entry
+
+# GET request to retrieve all memory entries
+@app.get("/memory")
+def get_memories():
+    with Session(engine) as session:
+        memories = session.query(MemoryEntry).all()
+    return {"memories": [memory.content for memory in memories]}
