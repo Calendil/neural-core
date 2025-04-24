@@ -8,8 +8,9 @@ class MemoryEntry(SQLModel, table=True):
     content: str
 
 # Connect to the SQLite database
-DATABASE_URL = "sqlite:///./test.db"  # Change this URL if using a different database
+DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(DATABASE_URL, echo=True)
+SQLModel.metadata.create_all(engine)  # Ensure tables are created
 
 # Initialize the FastAPI app
 app = FastAPI()
