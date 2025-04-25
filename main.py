@@ -1,6 +1,7 @@
-from fastapi import FastAPI, HTTPException, Path, Body
+from fastapi import FastAPI, HTTPException, Path, Body, Request
 from sqlmodel import SQLModel, Field, create_engine, Session, select
 from typing import Optional
+import sqlite3
 
 # Define the MemoryEntry model
 class MemoryEntry(SQLModel, table=True):
@@ -39,7 +40,7 @@ def create_memory_entry(memory_entry: MemoryEntry):
 def get_memories():
     with Session(engine) as session:
         memories = session.exec(select(MemoryEntry)).all()
-    return {"memories": [memory.content for memory in memories]}
+    return {"memories": memories}
 
 # Update a memory entry partially
 @app.put("/memory/{memory_id}")
@@ -48,12 +49,12 @@ def update_memory(memory_id: int = Path(...), memory_update: MemoryUpdate = Body
         existing_memory = session.get(MemoryEntry, memory_id)
         if not existing_memory:
             raise HTTPException(status_code=404, detail="Memory not found")
-        
+
         if memory_update.title is not None:
             existing_memory.title = memory_update.title
         if memory_update.content is not None:
             existing_memory.content = memory_update.content
-        
+
         session.add(existing_memory)
         session.commit()
         session.refresh(existing_memory)
@@ -70,3 +71,24 @@ def delete_memory(memory_id: int):
             return {"message": f"Memory with ID {memory_id} deleted."}
         else:
             raise HTTPException(status_code=404, detail="Memory not found")
+
+# Execute raw SQL (DDL/DML)
+@app.post("/execute-sql")
+async def execute_sql(request: Request):
+    try:
+        body = await request.json()
+        sql = body.get("sql")
+        if not sql:
+            return {"error": "No SQL provided"}
+    except Exception as e:
+        return {"error": f"Invalid request format: {str(e)}"}
+
+    try:
+        with sqlite3.connect("test.db") as conn:
+            cursor = conn.cursor()
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            conn.commit()
+            return {"result": result}
+    except Exception as e:
+        return {"error": str(e)}
