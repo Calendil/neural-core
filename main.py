@@ -16,7 +16,7 @@ class MemoryUpdate(SQLModel):
     content: Optional[str] = None
 
 # Connect to the SQLite database
-DATABASE_URL = "sqlite:///./test.db"
+DATABASE_URL = "sqlite:///./memory-core.db"
 engine = create_engine(DATABASE_URL, echo=True)
 SQLModel.metadata.create_all(engine)
 
@@ -91,7 +91,7 @@ async def execute_sql(request: Request):
         return {"error": f"Invalid request format: {str(e)}"}
 
     try:
-        with sqlite3.connect("test.db") as conn:
+        with sqlite3.connect("memory-core.db") as conn:
             cursor = conn.cursor()
             cursor.executescript(sql)  # Allow DDL like CREATE TABLE
             conn.commit()
