@@ -1,8 +1,8 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Path, Body, Request
+from pydantic import BaseModel
 import sqlite3
 import os
-from pydantic import BaseModel
-from functional_notion_api import push_to_notion
+from functional_notion_api import push_to_notion, fetch_blocks_from_notion
 
 # Initialize the FastAPI app
 app = FastAPI()
@@ -112,4 +112,11 @@ class NotionSyncRequest(BaseModel):
 @app.post("/bridge/notion-sync")
 def notion_sync(request: NotionSyncRequest):
     result = push_to_notion(request.page_id, request.content)
+    return result
+
+# --- ✅ Active: Notion fetch endpoint ---
+
+@app.get("/bridge/notion-fetch")
+def notion_fetch(page_id: str):
+    result = fetch_blocks_from_notion(page_id)
     return result
