@@ -1,39 +1,65 @@
-from fastapi import FastAPI, HTTPException, Path, Body, Request
-from sqlmodel import SQLModel, Field, create_engine, Session, select
-from typing import Optional
+from fastapi import FastAPI, Request
 import sqlite3
 import os
-
-# Define the MemoryEntry model
-class MemoryEntry(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    title: str
-    content: str
-
-# Update model for partial updates
-class MemoryUpdate(SQLModel):
-    title: Optional[str] = None
-    content: Optional[str] = None
-
-# Connect to the SQLite database
-DATABASE_URL = "sqlite:///./memory-core.db"
-engine = create_engine(DATABASE_URL, echo=True)
-SQLModel.metadata.create_all(engine)
+from pydantic import BaseModel
+from functional_notion_api import push_to_notion
 
 # Initialize the FastAPI app
 app = FastAPI()
 
 @app.get("/")
 def read_root():
-    return {"message": "Your FastAPI app is live!"}
+    return {"message": "Bridge API is live."}
 
-# New: List server files
 @app.get("/list-files")
 def list_files():
     files = os.listdir(".")
     return {"files": files}
 
-# Create a memory entry
+# --- 🔒 Isolated: Raw SQL execution ---
+"""
+from fastapi import Body
+@app.post("/execute-sql")
+async def execute_sql(request: Request):
+    try:
+        body = await request.json()
+        sql = body.get("sql")
+        if not sql:
+            return {"error": "No SQL provided"}
+    except Exception as e:
+        return {"error": f"Invalid request format: {str(e)}"}
+
+    try:
+        with sqlite3.connect("memory-core.db") as conn:
+            cursor = conn.cursor()
+            cursor.executescript(sql)
+            conn.commit()
+            return {"result": "SQL executed successfully."}
+    except sqlite3.Error as e:
+        return {"error": f"SQLite error: {str(e)}"}
+    except Exception as e:
+        return {"error": str(e)}
+"""
+
+# --- 🔒 Isolated: Unfinished memory DB routes ---
+"""
+from fastapi import HTTPException, Path
+from sqlmodel import SQLModel, Field, create_engine, Session, select
+from typing import Optional
+
+class MemoryEntry(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    title: str
+    content: str
+
+class MemoryUpdate(SQLModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+
+DATABASE_URL = "sqlite:///./memory-core.db"
+engine = create_engine(DATABASE_URL, echo=True)
+SQLModel.metadata.create_all(engine)
+
 @app.post("/memory")
 def create_memory_entry(memory_entry: MemoryEntry):
     with Session(engine) as session:
@@ -42,14 +68,12 @@ def create_memory_entry(memory_entry: MemoryEntry):
         session.refresh(memory_entry)
     return memory_entry
 
-# Get all memory entries
 @app.get("/memory")
 def get_memories():
     with Session(engine) as session:
         memories = session.exec(select(MemoryEntry)).all()
     return {"memories": memories}
 
-# Update a memory entry partially
 @app.put("/memory/{memory_id}")
 def update_memory(memory_id: int = Path(...), memory_update: MemoryUpdate = Body(...)):
     with Session(engine) as session:
@@ -67,7 +91,6 @@ def update_memory(memory_id: int = Path(...), memory_update: MemoryUpdate = Body
         session.refresh(existing_memory)
         return {"message": f"Memory with ID {memory_id} updated."}
 
-# Delete a memory entry
 @app.delete("/memory/{memory_id}")
 def delete_memory(memory_id: int):
     with Session(engine) as session:
@@ -78,25 +101,15 @@ def delete_memory(memory_id: int):
             return {"message": f"Memory with ID {memory_id} deleted."}
         else:
             raise HTTPException(status_code=404, detail="Memory not found")
+"""
 
-# Execute raw SQL (updated)
-@app.post("/execute-sql")
-async def execute_sql(request: Request):
-    try:
-        body = await request.json()
-        sql = body.get("sql")
-        if not sql:
-            return {"error": "No SQL provided"}
-    except Exception as e:
-        return {"error": f"Invalid request format: {str(e)}"}
+# --- ✅ Active: Notion sync endpoint ---
 
-    try:
-        with sqlite3.connect("memory-core.db") as conn:
-            cursor = conn.cursor()
-            cursor.executescript(sql)  # Allow DDL like CREATE TABLE
-            conn.commit()
-            return {"result": "SQL executed successfully."}
-    except sqlite3.Error as e:
-        return {"error": f"SQLite error: {str(e)}"}
-    except Exception as e:
-        return {"error": str(e)}
+class NotionSyncRequest(BaseModel):
+    page_id: str
+    content: str
+
+@app.post("/bridge/notion-sync")
+def notion_sync(request: NotionSyncRequest):
+    result = push_to_notion(request.page_id, request.content)
+    return result
