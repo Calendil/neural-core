@@ -152,14 +152,16 @@ def notion_database_delete(**body):
     return handle_response(response)
 
 
-def notion_database_schema_update(database_id: str = None, new_properties: dict = None, properties: dict = None, **_):
-    final_properties = new_properties or properties
-    if not database_id or not final_properties:
+def notion_database_schema_update(body: dict):
+    database_id = body.get("database_id")
+    new_properties = body.get("new_properties") or body.get("properties")
+
+    if not database_id or not new_properties:
         return {"error": "database_id and new_properties (or properties) are required."}
 
     url = f"https://api.notion.com/v1/databases/{database_id}"
     data = {
-        "properties": final_properties
+        "properties": new_properties
     }
     response = requests.patch(url, headers=HEADERS, json=data)
     return handle_response(response)
