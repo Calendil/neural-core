@@ -1,11 +1,5 @@
 from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel
 import os
-from functional_notion_api import (
-    push_to_notion,
-    fetch_blocks_from_notion,
-    create_page_in_notion  # Make sure this exists if you plan to create pages
-)
 from fastapi.openapi.utils import get_openapi
 
 # Initialize the FastAPI app
@@ -20,40 +14,40 @@ def list_files():
     files = os.listdir(".")
     return {"files": files}
 
-# --- ✅ Dynamic Notion bridge route ---
+# --- ✅ Dynamic Notion bridge: forwards any action starting with 'notion' ---
 @app.api_route("/bridge/notion/{action}", methods=["GET", "POST"])
 async def notion_dynamic_bridge(action: str, request: Request):
-    if action == "sync":
-        body = await request.json()
-        page_id = body.get("page_id")
-        content = body.get("content")
-        if not page_id or not content:
-            raise HTTPException(status_code=400, detail="page_id and content are required.")
-        return push_to_notion(page_id, content)
+    if not action.startswith("notion"):
+        raise HTTPException(status_code=400, detail=f"Action '{action}' is not a Notion-related action.")
 
-    elif action == "fetch":
-        page_id = request.query_params.get("page_id")
-        if not page_id:
-            raise HTTPException(status_code=400, detail="page_id is required.")
-        return fetch_blocks_from_notion(page_id)
+    # Dynamically load function from functional_notion_api
+    from functional_notion_api import __dict__ as notion_funcs
+    func_name = action.replace("-", "_")
+    func = notion_funcs.get(func_name)
 
-    elif action == "create":
-        body = await request.json()
-        parent_id = body.get("parent_id")
-        title = body.get("title")
-        if not parent_id or not title:
-            raise HTTPException(status_code=400, detail="parent_id and title are required.")
-        return create_page_in_notion(parent_id, title)
+    if func is None:
+        raise HTTPException(status_code=400, detail=f"No handler found for action '{action}' in functional_notion_api.")
+
+    if request.method == "POST":
+        try:
+            body = await request.json()
+        except Exception:
+            body = {}
+        return func(**body)
+
+    elif request.method == "GET":
+        params = dict(request.query_params)
+        return func(**params)
 
     else:
-        raise HTTPException(status_code=404, detail=f"Unsupported action: {action}")
+        raise HTTPException(status_code=405, detail="Method not allowed.")
 
 # --- ✅ Custom OpenAPI schema with servers field ---
 def custom_openapi():
     openapi_schema = get_openapi(
         title="GPT Beyond Neural Core API",
-        version="0.2.0",
-        description="Dynamic Bridge API for Notion integrations.",
+        version="0.3.0",
+        description="Universal Dynamic Bridge API for Notion integrations.",
         routes=app.routes,
     )
     openapi_schema["servers"] = [
