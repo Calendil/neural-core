@@ -32,9 +32,8 @@ def notion_sync_bridge(request: NotionSyncRequest):
 def notion_fetch_bridge(page_id: str):
     return fetch_blocks_from_notion(page_id)
 
-# --- ✅ Inject OpenAPI servers field ---
-@app.get("/openapi.json", include_in_schema=False)
-async def custom_openapi():
+# --- ✅ Custom OpenAPI schema with servers field ---
+def custom_openapi():
     openapi_schema = get_openapi(
         title="GPT Beyond Neural Core API",
         version="0.1.0",
@@ -45,3 +44,6 @@ async def custom_openapi():
         {"url": "https://neural-core.onrender.com"}
     ]
     return openapi_schema
+
+# Override the default OpenAPI generator
+app.openapi = custom_openapi
