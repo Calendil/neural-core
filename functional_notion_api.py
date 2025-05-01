@@ -159,6 +159,7 @@ def notion_database_schema_update(**body):
         or body.get("properties")
         or body.get("updates")
         or body.get("properties_update")
+        or body.get("update")
     )
 
     if not database_id or not props:
