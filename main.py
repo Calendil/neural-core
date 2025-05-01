@@ -32,7 +32,7 @@ def notion_sync_bridge(request: NotionSyncRequest):
 def notion_fetch_bridge(page_id: str):
     return fetch_blocks_from_notion(page_id)
 
-# --- ✅ Custom OpenAPI schema with servers field ---
+# --- ✅ Custom OpenAPI schema with servers + url field ---
 def custom_openapi():
     openapi_schema = get_openapi(
         title="GPT Beyond Neural Core API",
@@ -40,11 +40,12 @@ def custom_openapi():
         description="Bridge API for Notion sync and fetch.",
         routes=app.routes,
     )
-    openapi_schema["openapi"] = "3.0.3"  # 👈 Force OpenAPI 3.0.3
+    openapi_schema["openapi"] = "3.0.3"
     openapi_schema["servers"] = [
         {"url": "https://neural-core.onrender.com"}
     ]
+    # Add a top-level 'url' field as a workaround
+    openapi_schema["url"] = "https://neural-core.onrender.com"
     return openapi_schema
 
-# Override the default OpenAPI generator
 app.openapi = custom_openapi
