@@ -30,7 +30,7 @@ async def notion_dynamic_bridge(action: str, request: Request):
             body = await request.json()
         except Exception:
             body = {}
-        return func(body=body)
+        return func(**body)
 
     elif request.method == "GET":
         params = dict(request.query_params)
