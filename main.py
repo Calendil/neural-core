@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException, Request
 import os
 from fastapi.openapi.utils import get_openapi
 
-# Initialize the FastAPI app
 app = FastAPI(openapi_version="3.1.0")
 
 @app.get("/")
@@ -14,13 +13,11 @@ def list_files():
     files = os.listdir(".")
     return {"files": files}
 
-# --- ✅ Dynamic Notion bridge: forwards any action starting with 'notion' ---
 @app.api_route("/bridge/notion/{action}", methods=["GET", "POST"])
 async def notion_dynamic_bridge(action: str, request: Request):
     if not action.startswith("notion"):
         raise HTTPException(status_code=400, detail=f"Action '{action}' is not a Notion-related action.")
 
-    # Dynamically load function from functional_notion_api
     from functional_notion_api import __dict__ as notion_funcs
     func_name = action.replace("-", "_")
     func = notion_funcs.get(func_name)
@@ -33,7 +30,7 @@ async def notion_dynamic_bridge(action: str, request: Request):
             body = await request.json()
         except Exception:
             body = {}
-        return func(**body)
+        return func(body=body)
 
     elif request.method == "GET":
         params = dict(request.query_params)
@@ -42,7 +39,6 @@ async def notion_dynamic_bridge(action: str, request: Request):
     else:
         raise HTTPException(status_code=405, detail="Method not allowed.")
 
-# --- ✅ Custom OpenAPI schema with servers field ---
 def custom_openapi():
     openapi_schema = get_openapi(
         title="GPT Beyond Neural Core API",
