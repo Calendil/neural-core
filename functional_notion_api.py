@@ -1,66 +1,42 @@
+# functional_notion_api.py
+
 import requests
-import os
 
-NOTION_API_URL = "https://api.notion.com/v1/blocks"
-NOTION_VERSION = "2022-06-28"
+NOTION_API_URL = "https://api.notion.com/v1/pages"
+NOTION_API_VERSION = "2022-06-28"
+from os import getenv
 
-NOTION_TOKEN = os.getenv("NOTION_API_KEY")  # Store this in your environment
+NOTION_API_KEY = getenv("NOTION_API_KEY")
 
-# Function to push content to a Notion page
-def push_to_notion(page_id: str, content: str) -> dict:
-    if not NOTION_TOKEN:
-        return {"error": "Missing Notion API token."}
-
+def push_to_notion(page_id: str, content: str):
     url = f"https://api.notion.com/v1/blocks/{page_id}/children"
-
     headers = {
-        "Authorization": f"Bearer {NOTION_TOKEN}",
-        "Notion-Version": NOTION_VERSION,
+        "Authorization": f"Bearer {NOTION_API_KEY}",
         "Content-Type": "application/json",
+        "Notion-Version": NOTION_API_VERSION,
     }
-
     data = {
         "children": [
             {
                 "object": "block",
                 "type": "paragraph",
-                "paragraph": {
-                    "rich_text": [
-                        {
-                            "type": "text",
-                            "text": {
-                                "content": content
-                            }
-                        }
-                    ]
-                }
+                "paragraph": {"text": [{"type": "text", "text": {"content": content}}]},
             }
         ]
     }
+    response = requests.patch(url, headers=headers, json=data)
+    if response.status_code != 200:
+        return {"error": response.text}
+    return {"status": "success", "detail": response.json()}
 
-    try:
-        response = requests.patch(url, headers=headers, json=data)
-        response.raise_for_status()
-        return {"status": "success", "response": response.json()}
-    except Exception as e:
-        return {"error": str(e)}
 
-# Function to fetch blocks from a Notion page
-def fetch_blocks_from_notion(page_id: str) -> dict:
-    if not NOTION_TOKEN:
-        return {"error": "Missing Notion API token."}
-
-    url = f"{NOTION_API_URL}/{page_id}/children"
-
+def fetch_blocks_from_notion(page_id: str):
+    url = f"https://api.notion.com/v1/blocks/{page_id}/children"
     headers = {
-        "Authorization": f"Bearer {NOTION_TOKEN}",
-        "Notion-Version": NOTION_VERSION,
-        "Content-Type": "application/json",
+        "Authorization": f"Bearer {NOTION_API_KEY}",
+        "Notion-Version": NOTION_API_VERSION,
     }
-
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return {"status": "success", "response": response.json()}
-    except Exception as e:
-        return {"error": str(e)}
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        return {"error": response.text}
+    return {"status": "success", "blocks": response.json()}
