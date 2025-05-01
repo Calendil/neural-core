@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import sqlite3
 import os
 from functional_notion_api import push_to_notion, fetch_blocks_from_notion
+from fastapi.openapi.utils import get_openapi
 
 # Initialize the FastAPI app
 app = FastAPI()
@@ -120,3 +121,17 @@ def notion_sync(request: NotionSyncRequest):
 def notion_fetch(page_id: str):
     result = fetch_blocks_from_notion(page_id)
     return result
+
+# --- ✅ Inject OpenAPI servers field ---
+@app.get("/openapi.json", include_in_schema=False)
+async def custom_openapi():
+    openapi_schema = get_openapi(
+        title="GPT Beyond Neural Core API",
+        version="0.1.0",
+        description="Bridge API for Notion sync and fetch, plus memory core functions.",
+        routes=app.routes,
+    )
+    openapi_schema["servers"] = [
+        {"url": "https://neural-core.onrender.com"}
+    ]
+    return openapi_schema
