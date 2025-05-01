@@ -1,10 +1,10 @@
 # functional_notion_api.py
 
 import requests
+from os import getenv
 
 NOTION_API_URL = "https://api.notion.com/v1/pages"
 NOTION_API_VERSION = "2022-06-28"
-from os import getenv
 
 NOTION_API_KEY = getenv("NOTION_API_KEY")
 
@@ -20,7 +20,16 @@ def push_to_notion(page_id: str, content: str):
             {
                 "object": "block",
                 "type": "paragraph",
-                "paragraph": {"text": [{"type": "text", "text": {"content": content}}]},
+                "paragraph": {
+                    "rich_text": [
+                        {
+                            "type": "text",
+                            "text": {
+                                "content": content
+                            }
+                        }
+                    ]
+                }
             }
         ]
     }
