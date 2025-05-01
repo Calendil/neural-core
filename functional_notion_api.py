@@ -81,7 +81,7 @@ def notion_create(**body):
     response = requests.post(url, headers=HEADERS, json=data)
     return handle_response(response)
 
-# --- Updated database CRUD functions with flexible unpacking ---
+# --- Database CRUD functions ---
 
 def notion_database_create(**body):
     parent_id = body.get("parent_id")
@@ -150,6 +150,21 @@ def notion_database_delete(**body):
     url = f"https://api.notion.com/v1/pages/{page_id}"
     data = {
         "archived": True
+    }
+    response = requests.patch(url, headers=HEADERS, json=data)
+    return handle_response(response)
+
+# --- ✅ New: Update database schema (columns) ---
+
+def notion_database_schema_update(**body):
+    database_id = body.get("database_id")
+    new_properties = body.get("new_properties")
+    if not database_id or not new_properties:
+        return {"error": "database_id and new_properties are required."}
+
+    url = f"https://api.notion.com/v1/databases/{database_id}"
+    data = {
+        "properties": new_properties
     }
     response = requests.patch(url, headers=HEADERS, json=data)
     return handle_response(response)
