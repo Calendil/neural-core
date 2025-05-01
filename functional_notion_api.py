@@ -6,13 +6,16 @@ from os import getenv
 NOTION_API_VERSION = "2022-06-28"
 NOTION_API_KEY = getenv("NOTION_API_KEY")
 
-def push_to_notion(page_id: str, content: str):
+HEADERS = {
+    "Authorization": f"Bearer {NOTION_API_KEY}",
+    "Content-Type": "application/json",
+    "Notion-Version": NOTION_API_VERSION,
+}
+
+# --- Existing functions ---
+
+def notion_sync(page_id: str, content: str):
     url = f"https://api.notion.com/v1/blocks/{page_id}/children"
-    headers = {
-        "Authorization": f"Bearer {NOTION_API_KEY}",
-        "Content-Type": "application/json",
-        "Notion-Version": NOTION_API_VERSION,
-    }
     data = {
         "children": [
             {
@@ -31,48 +34,88 @@ def push_to_notion(page_id: str, content: str):
             }
         ]
     }
-    response = requests.patch(url, headers=headers, json=data)
-    if response.status_code != 200:
-        return {"error": response.text}
-    return {"status": "success", "detail": response.json()}
+    response = requests.patch(url, headers=HEADERS, json=data)
+    return handle_response(response)
 
 
-def fetch_blocks_from_notion(page_id: str):
+def notion_fetch(page_id: str):
     url = f"https://api.notion.com/v1/blocks/{page_id}/children"
-    headers = {
-        "Authorization": f"Bearer {NOTION_API_KEY}",
-        "Notion-Version": NOTION_API_VERSION,
-    }
-    response = requests.get(url, headers=headers)
-    if response.status_code != 200:
-        return {"error": response.text}
-    return {"status": "success", "blocks": response.json()}
+    response = requests.get(url, headers=HEADERS)
+    return handle_response(response)
 
 
-def create_page_in_notion(parent_id: str, title: str):
+def notion_create(parent_id: str, title: str):
     url = "https://api.notion.com/v1/pages"
-    headers = {
-        "Authorization": f"Bearer {NOTION_API_KEY}",
-        "Content-Type": "application/json",
-        "Notion-Version": NOTION_API_VERSION,
-    }
     data = {
         "parent": {
             "type": "page_id",
             "page_id": parent_id
         },
         "properties": {
-            "title": [
-                {
-                    "type": "text",
-                    "text": {
-                        "content": title
+            "title": {
+                "title": [
+                    {
+                        "type": "text",
+                        "text": {
+                            "content": title
+                        }
                     }
-                }
-            ]
+                ]
+            }
         }
     }
-    response = requests.post(url, headers=headers, json=data)
-    if response.status_code != 200:
-        return {"error": response.text}
+    response = requests.post(url, headers=HEADERS, json=data)
+    return handle_response(response)
+
+# --- New database CRUD functions ---
+
+def notion_database_create(parent_id: str, title: str, properties: dict):
+    url = "https://api.notion.com/v1/databases"
+    data = {
+        "parent": {
+            "type": "page_id",
+            "page_id": parent_id
+        },
+        "title": [
+            {
+                "type": "text",
+                "text": {
+                    "content": title
+                }
+            }
+        ],
+        "properties": properties
+    }
+    response = requests.post(url, headers=HEADERS, json=data)
+    return handle_response(response)
+
+
+def notion_database_query(database_id: str):
+    url = f"https://api.notion.com/v1/databases/{database_id}/query"
+    response = requests.post(url, headers=HEADERS)
+    return handle_response(response)
+
+
+def notion_database_update(page_id: str, properties: dict):
+    url = f"https://api.notion.com/v1/pages/{page_id}"
+    data = {
+        "properties": properties
+    }
+    response = requests.patch(url, headers=HEADERS, json=data)
+    return handle_response(response)
+
+
+def notion_database_delete(page_id: str):
+    url = f"https://api.notion.com/v1/pages/{page_id}"
+    data = {
+        "archived": True
+    }
+    response = requests.patch(url, headers=HEADERS, json=data)
+    return handle_response(response)
+
+# --- Helper ---
+
+def handle_response(response):
+    if response.status_code not in [200, 201]:
+        return {"error": response.text, "status_code": response.status_code}
     return {"status": "success", "detail": response.json()}
