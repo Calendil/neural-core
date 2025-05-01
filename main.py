@@ -5,7 +5,7 @@ from functional_notion_api import push_to_notion, fetch_blocks_from_notion
 from fastapi.openapi.utils import get_openapi
 
 # Initialize the FastAPI app
-app = FastAPI()
+app = FastAPI(openapi_version="3.0.3")
 
 @app.get("/")
 def read_root():
@@ -40,6 +40,7 @@ def custom_openapi():
         description="Bridge API for Notion sync and fetch.",
         routes=app.routes,
     )
+    openapi_schema["openapi"] = "3.0.3"  # 👈 Force OpenAPI 3.0.3
     openapi_schema["servers"] = [
         {"url": "https://neural-core.onrender.com"}
     ]
