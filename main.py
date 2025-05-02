@@ -19,6 +19,7 @@ async def notion_dynamic_bridge(action: str, request: Request):
         raise HTTPException(status_code=400, detail=f"Action '{action}' is not a Notion-related action.")
 
     from functional_notion_api import __dict__ as notion_funcs
+    print("DEBUG: Available functions:", [k for k in notion_funcs.keys() if not k.startswith('__')])
     func_name = action.replace("-", "_")
     func = notion_funcs.get(func_name)
 
