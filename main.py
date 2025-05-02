@@ -19,11 +19,8 @@ async def notion_dynamic_bridge(action: str, request: Request):
         raise HTTPException(status_code=400, detail=f"Action '{action}' is not a Notion-related action.")
 
     from functional_notion_api import __dict__ as notion_funcs
-    print("DEBUG: Available functions:", [k for k in notion_funcs.keys() if not k.startswith('__')])
     func_name = action.replace("-", "_")
     func = notion_funcs.get(func_name)
-
-    print(f"DEBUG: Requested action '{action}' mapped to function '{func_name}' -> {func}")
 
     if func is None:
         raise HTTPException(status_code=400, detail=f"No handler found for action '{action}' in functional_notion_api.")
@@ -33,11 +30,11 @@ async def notion_dynamic_bridge(action: str, request: Request):
             body = await request.json()
         except Exception:
             body = {}
-        return func(body=body)
+        return func(**body)
 
     elif request.method == "GET":
         params = dict(request.query_params)
-        return func(body=params)
+        return func(**params)
 
     else:
         raise HTTPException(status_code=405, detail="Method not allowed.")
