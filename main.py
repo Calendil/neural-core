@@ -25,15 +25,25 @@ async def notion_dynamic_bridge(action: str, request: Request):
     if func is None:
         raise HTTPException(status_code=400, detail=f"No handler found for action '{action}' in functional_notion_api.")
 
+    if not callable(func):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Handler '{func_name}' exists but is not callable (type: {type(func).__name__})."
+        )
+
     if request.method == "POST":
         try:
             body = await request.json()
         except Exception:
             body = {}
+        # Add action_id for internal verification
+        body["action_id"] = func_name
         return func(**body)
 
     elif request.method == "GET":
         params = dict(request.query_params)
+        # Add action_id for internal verification
+        params["action_id"] = func_name
         return func(**params)
 
     else:
