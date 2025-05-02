@@ -15,7 +15,6 @@ def notion_sync(**body):
     content = body.get("content")
     if not page_id or not content:
         return {"error": "page_id and content are required."}
-
     url = f"https://api.notion.com/v1/blocks/{page_id}/children"
     data = {
         "children": [
@@ -38,23 +37,19 @@ def notion_sync(**body):
     response = requests.patch(url, headers=HEADERS, json=data)
     return handle_response(response)
 
-
 def notion_fetch(**params):
     page_id = params.get("page_id")
     if not page_id:
         return {"error": "page_id is required."}
-
     url = f"https://api.notion.com/v1/blocks/{page_id}/children"
     response = requests.get(url, headers=HEADERS)
     return handle_response(response)
-
 
 def notion_create(**body):
     parent_id = body.get("parent_id")
     title = body.get("title")
     if not parent_id or not title:
         return {"error": "parent_id and title are required."}
-
     url = "https://api.notion.com/v1/pages"
     data = {
         "parent": {
@@ -77,22 +72,18 @@ def notion_create(**body):
     response = requests.post(url, headers=HEADERS, json=data)
     return handle_response(response)
 
-
 def notion_database_create(**body):
     parent_id = body.get("parent_id")
     title = body.get("title")
     properties = body.get("properties")
-
     if not parent_id or not title:
         return {"error": "parent_id and title are required."}
-
     if not properties:
         properties = {
             "Name": {
                 "title": {}
             }
         }
-
     url = "https://api.notion.com/v1/databases"
     data = {
         "parent": {
@@ -112,23 +103,19 @@ def notion_database_create(**body):
     response = requests.post(url, headers=HEADERS, json=data)
     return handle_response(response)
 
-
 def notion_database_query(**params):
     database_id = params.get("database_id")
     if not database_id:
         return {"error": "database_id is required."}
-
     url = f"https://api.notion.com/v1/databases/{database_id}/query"
     response = requests.post(url, headers=HEADERS)
     return handle_response(response)
-
 
 def notion_database_update(**body):
     page_id = body.get("page_id")
     properties = body.get("properties")
     if not page_id or not properties:
         return {"error": "page_id and properties are required."}
-
     url = f"https://api.notion.com/v1/pages/{page_id}"
     data = {
         "properties": properties
@@ -136,40 +123,16 @@ def notion_database_update(**body):
     response = requests.patch(url, headers=HEADERS, json=data)
     return handle_response(response)
 
-
 def notion_database_delete(**body):
     page_id = body.get("page_id")
     if not page_id:
         return {"error": "page_id is required."}
-
     url = f"https://api.notion.com/v1/pages/{page_id}"
     data = {
         "archived": True
     }
     response = requests.patch(url, headers=HEADERS, json=data)
     return handle_response(response)
-
-
-def notion_database_schema_update(**body):
-    database_id = body.get("database_id")
-    props = (
-        body.get("new_properties")
-        or body.get("properties")
-        or body.get("updates")
-        or body.get("properties_update")
-        or body.get("update")
-    )
-
-    if not database_id or not props:
-        return {"error": "database_id and properties are required."}
-
-    url = f"https://api.notion.com/v1/databases/{database_id}"
-    data = {
-        "properties": props
-    }
-    response = requests.patch(url, headers=HEADERS, json=data)
-    return handle_response(response)
-
 
 def handle_response(response):
     if response.status_code not in [200, 201]:
