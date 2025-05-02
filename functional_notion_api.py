@@ -1,5 +1,3 @@
-# functional_notion_api.py
-
 import requests
 from os import getenv
 
@@ -12,7 +10,8 @@ HEADERS = {
     "Notion-Version": NOTION_API_VERSION,
 }
 
-def notion_sync(**body):
+def notion_sync(body: dict):
+    print("DEBUG BODY (notion_sync):", body)
     page_id = body.get("page_id")
     content = body.get("content")
     if not page_id or not content:
@@ -41,8 +40,9 @@ def notion_sync(**body):
     return handle_response(response)
 
 
-def notion_fetch(**params):
-    page_id = params.get("page_id")
+def notion_fetch(body: dict):
+    print("DEBUG BODY (notion_fetch):", body)
+    page_id = body.get("page_id")
     if not page_id:
         return {"error": "page_id is required."}
 
@@ -51,7 +51,8 @@ def notion_fetch(**params):
     return handle_response(response)
 
 
-def notion_create(**body):
+def notion_create(body: dict):
+    print("DEBUG BODY (notion_create):", body)
     parent_id = body.get("parent_id")
     title = body.get("title")
     if not parent_id or not title:
@@ -80,7 +81,8 @@ def notion_create(**body):
     return handle_response(response)
 
 
-def notion_database_create(**body):
+def notion_database_create(body: dict):
+    print("DEBUG BODY (notion_database_create):", body)
     parent_id = body.get("parent_id")
     title = body.get("title")
     properties = body.get("properties")
@@ -115,8 +117,9 @@ def notion_database_create(**body):
     return handle_response(response)
 
 
-def notion_database_query(**params):
-    database_id = params.get("database_id")
+def notion_database_query(body: dict):
+    print("DEBUG BODY (notion_database_query):", body)
+    database_id = body.get("database_id")
     if not database_id:
         return {"error": "database_id is required."}
 
@@ -125,7 +128,8 @@ def notion_database_query(**params):
     return handle_response(response)
 
 
-def notion_database_update(**body):
+def notion_database_update(body: dict):
+    print("DEBUG BODY (notion_database_update):", body)
     page_id = body.get("page_id")
     properties = body.get("properties")
     if not page_id or not properties:
@@ -139,7 +143,8 @@ def notion_database_update(**body):
     return handle_response(response)
 
 
-def notion_database_delete(**body):
+def notion_database_delete(body: dict):
+    print("DEBUG BODY (notion_database_delete):", body)
     page_id = body.get("page_id")
     if not page_id:
         return {"error": "page_id is required."}
@@ -152,7 +157,8 @@ def notion_database_delete(**body):
     return handle_response(response)
 
 
-def notion_database_schema_update(**body):
+def notion_database_schema_update(body: dict):
+    print("DEBUG BODY (notion_database_schema_update):", body)
     database_id = body.get("database_id")
     props = (
         body.get("new_properties")
