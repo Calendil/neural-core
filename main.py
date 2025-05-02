@@ -22,6 +22,8 @@ async def notion_dynamic_bridge(action: str, request: Request):
     func_name = action.replace("-", "_")
     func = notion_funcs.get(func_name)
 
+    print(f"DEBUG: Requested action '{action}' mapped to function '{func_name}' -> {func}")
+
     if func is None:
         raise HTTPException(status_code=400, detail=f"No handler found for action '{action}' in functional_notion_api.")
 
