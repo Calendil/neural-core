@@ -17,27 +17,48 @@ class NotionSyncRequest(BaseModel):
     page_id: str
     content: str
 
+    class Config:
+        extra = "allow"
+
 class NotionFetchRequest(BaseModel):
     page_id: str
+
+    class Config:
+        extra = "allow"
 
 class NotionCreateRequest(BaseModel):
     parent_id: str
     title: str
+
+    class Config:
+        extra = "allow"
 
 class NotionDatabaseCreateRequest(BaseModel):
     parent_id: str
     title: str
     properties: dict
 
+    class Config:
+        extra = "allow"
+
 class NotionDatabaseQueryRequest(BaseModel):
     database_id: str
+
+    class Config:
+        extra = "allow"
 
 class NotionDatabaseUpdateRequest(BaseModel):
     page_id: str
     properties: dict
 
+    class Config:
+        extra = "allow"
+
 class NotionDatabaseDeleteRequest(BaseModel):
     page_id: str
+
+    class Config:
+        extra = "allow"
 
 # ------------------- Notion Functions -------------------
 
