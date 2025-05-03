@@ -72,7 +72,10 @@ def notion_sync(**body):
     except ValidationError as e:
         return {"error": e.errors()}
 
-    url = f"https://api.notion.com/v1/blocks/{validated.page_id}/children"
+    page_id = validated.page_id
+    content = validated.content
+
+    url = f"https://api.notion.com/v1/blocks/{page_id}/children"
     data = {
         "children": [
             {
@@ -83,7 +86,7 @@ def notion_sync(**body):
                         {
                             "type": "text",
                             "text": {
-                                "content": validated.content
+                                "content": content
                             }
                         }
                     ]
@@ -104,7 +107,9 @@ def notion_fetch(**params):
     except ValidationError as e:
         return {"error": e.errors()}
 
-    url = f"https://api.notion.com/v1/blocks/{validated.page_id}/children"
+    page_id = validated.page_id
+
+    url = f"https://api.notion.com/v1/blocks/{page_id}/children"
     response = requests.get(url, headers=HEADERS)
     return handle_response(response)
 
@@ -118,11 +123,14 @@ def notion_create(**body):
     except ValidationError as e:
         return {"error": e.errors()}
 
+    parent_id = validated.parent_id
+    title = validated.title
+
     url = "https://api.notion.com/v1/pages"
     data = {
         "parent": {
             "type": "page_id",
-            "page_id": validated.parent_id
+            "page_id": parent_id
         },
         "properties": {
             "title": {
@@ -130,7 +138,7 @@ def notion_create(**body):
                     {
                         "type": "text",
                         "text": {
-                            "content": validated.title
+                            "content": title
                         }
                     }
                 ]
@@ -150,21 +158,25 @@ def notion_database_create(**body):
     except ValidationError as e:
         return {"error": e.errors()}
 
+    parent_id = validated.parent_id
+    title = validated.title
+    properties = validated.properties
+
     url = "https://api.notion.com/v1/databases"
     data = {
         "parent": {
             "type": "page_id",
-            "page_id": validated.parent_id
+            "page_id": parent_id
         },
         "title": [
             {
                 "type": "text",
                 "text": {
-                    "content": validated.title
+                    "content": title
                 }
             }
         ],
-        "properties": validated.properties or {"Name": {"title": {}}}
+        "properties": properties or {"Name": {"title": {}}}
     }
     response = requests.post(url, headers=HEADERS, json=data)
     return handle_response(response)
@@ -179,7 +191,9 @@ def notion_database_query(**params):
     except ValidationError as e:
         return {"error": e.errors()}
 
-    url = f"https://api.notion.com/v1/databases/{validated.database_id}/query"
+    database_id = validated.database_id
+
+    url = f"https://api.notion.com/v1/databases/{database_id}/query"
     response = requests.post(url, headers=HEADERS)
     return handle_response(response)
 
@@ -193,9 +207,12 @@ def notion_database_update(**body):
     except ValidationError as e:
         return {"error": e.errors()}
 
-    url = f"https://api.notion.com/v1/pages/{validated.page_id}"
+    page_id = validated.page_id
+    properties = validated.properties
+
+    url = f"https://api.notion.com/v1/pages/{page_id}"
     data = {
-        "properties": validated.properties
+        "properties": properties
     }
     response = requests.patch(url, headers=HEADERS, json=data)
     return handle_response(response)
@@ -210,7 +227,9 @@ def notion_database_delete(**body):
     except ValidationError as e:
         return {"error": e.errors()}
 
-    url = f"https://api.notion.com/v1/pages/{validated.page_id}"
+    page_id = validated.page_id
+
+    url = f"https://api.notion.com/v1/pages/{page_id}"
     data = {
         "archived": True
     }
