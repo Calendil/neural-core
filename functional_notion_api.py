@@ -39,13 +39,6 @@ class NotionDatabaseQueryRequest(BaseModel):
     class Config:
         extra = "allow"
 
-class NotionDatabaseUpdateRequest(BaseModel):
-    page_id: str
-    properties: dict
-
-    class Config:
-        extra = "allow"
-
 class NotionDatabaseDeleteRequest(BaseModel):
     page_id: str
 
@@ -176,6 +169,20 @@ def notion_database_create(**body):
     response = requests.post(url, headers=HEADERS, json=data)
     return handle_response(response)
 
+def notion_database_update(**body):
+    page_id = body.get("page_id")
+    properties = body.get("properties")
+
+    if not page_id or not properties:
+        return {"error": "page_id and properties are required."}
+
+    url = f"https://api.notion.com/v1/pages/{page_id}"
+    data = {
+        "properties": properties
+    }
+    response = requests.patch(url, headers=HEADERS, json=data)
+    return handle_response(response)
+
 # ---------------------------------------------------------------------
 
 def notion_database_query(**params):
@@ -192,26 +199,6 @@ def notion_database_query(**params):
 
     url = f"https://api.notion.com/v1/databases/{database_id}/query"
     response = requests.post(url, headers=HEADERS)
-    return handle_response(response)
-
-def notion_database_update(**body):
-    expected_action = "notion_database_update"
-    if body.get("action_id") != expected_action:
-        return {"error": f"Action mismatch: expected '{expected_action}', got '{body.get('action_id')}'"}
-
-    try:
-        validated = NotionDatabaseUpdateRequest(**body)
-    except ValidationError as e:
-        return {"error": e.errors()}
-
-    page_id = validated.page_id
-    properties = validated.properties
-
-    url = f"https://api.notion.com/v1/pages/{page_id}"
-    data = {
-        "properties": properties
-    }
-    response = requests.patch(url, headers=HEADERS, json=data)
     return handle_response(response)
 
 def notion_database_delete(**body):
