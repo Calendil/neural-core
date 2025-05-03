@@ -33,14 +33,6 @@ class NotionCreateRequest(BaseModel):
     class Config:
         extra = "allow"
 
-class NotionDatabaseCreateRequest(BaseModel):
-    parent_id: str
-    title: str
-    properties: dict
-
-    class Config:
-        extra = "allow"
-
 class NotionDatabaseQueryRequest(BaseModel):
     database_id: str
 
@@ -148,19 +140,22 @@ def notion_create(**body):
     response = requests.post(url, headers=HEADERS, json=data)
     return handle_response(response)
 
+# ----------- Reverted to old pass-through (no validation) ------------
+
 def notion_database_create(**body):
-    expected_action = "notion_database_create"
-    if body.get("action_id") != expected_action:
-        return {"error": f"Action mismatch: expected '{expected_action}', got '{body.get('action_id')}'"}
+    parent_id = body.get("parent_id")
+    title = body.get("title")
+    properties = body.get("properties")
 
-    try:
-        validated = NotionDatabaseCreateRequest(**body)
-    except ValidationError as e:
-        return {"error": e.errors()}
+    if not parent_id or not title:
+        return {"error": "parent_id and title are required."}
 
-    parent_id = validated.parent_id
-    title = validated.title
-    properties = validated.properties
+    if not properties:
+        properties = {
+            "Name": {
+                "title": {}
+            }
+        }
 
     url = "https://api.notion.com/v1/databases"
     data = {
@@ -176,10 +171,12 @@ def notion_database_create(**body):
                 }
             }
         ],
-        "properties": properties or {"Name": {"title": {}}}
+        "properties": properties
     }
     response = requests.post(url, headers=HEADERS, json=data)
     return handle_response(response)
+
+# ---------------------------------------------------------------------
 
 def notion_database_query(**params):
     expected_action = "notion_database_query"
