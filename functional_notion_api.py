@@ -48,17 +48,10 @@ class NotionDatabaseDeleteRequest(BaseModel):
 # ------------------- Notion Functions -------------------
 
 def notion_sync(**body):
-    expected_action = "notion_sync"
-    if body.get("action_id") != expected_action:
-        return {"error": f"Action mismatch: expected '{expected_action}', got '{body.get('action_id')}'"}
-
-    try:
-        validated = NotionSyncRequest(**body)
-    except ValidationError as e:
-        return {"error": e.errors()}
-
-    page_id = validated.page_id
-    content = validated.content
+    page_id = body.get("page_id")
+    content = body.get("content")
+    if not page_id or not content:
+        return {"error": "page_id and content are required."}
 
     url = f"https://api.notion.com/v1/blocks/{page_id}/children"
     data = {
@@ -83,33 +76,19 @@ def notion_sync(**body):
     return handle_response(response)
 
 def notion_fetch(**params):
-    expected_action = "notion_fetch"
-    if params.get("action_id") != expected_action:
-        return {"error": f"Action mismatch: expected '{expected_action}', got '{params.get('action_id')}'"}
-
-    try:
-        validated = NotionFetchRequest(**params)
-    except ValidationError as e:
-        return {"error": e.errors()}
-
-    page_id = validated.page_id
+    page_id = params.get("page_id")
+    if not page_id:
+        return {"error": "page_id is required."}
 
     url = f"https://api.notion.com/v1/blocks/{page_id}/children"
     response = requests.get(url, headers=HEADERS)
     return handle_response(response)
 
 def notion_create(**body):
-    expected_action = "notion_create"
-    if body.get("action_id") != expected_action:
-        return {"error": f"Action mismatch: expected '{expected_action}', got '{body.get('action_id')}'"}
-
-    try:
-        validated = NotionCreateRequest(**body)
-    except ValidationError as e:
-        return {"error": e.errors()}
-
-    parent_id = validated.parent_id
-    title = validated.title
+    parent_id = body.get("parent_id")
+    title = body.get("title")
+    if not parent_id or not title:
+        return {"error": "parent_id and title are required."}
 
     url = "https://api.notion.com/v1/pages"
     data = {
@@ -132,8 +111,6 @@ def notion_create(**body):
     }
     response = requests.post(url, headers=HEADERS, json=data)
     return handle_response(response)
-
-# ----------- Reverted to old pass-through (no validation) ------------
 
 def notion_database_create(**body):
     parent_id = body.get("parent_id")
@@ -171,47 +148,31 @@ def notion_database_create(**body):
 
 def notion_database_update(**body):
     page_id = body.get("page_id")
-    properties = body.get("properties")
+    update_fields = body.get("update_fields")
 
-    if not page_id or not properties:
-        return {"error": "page_id and properties are required."}
+    if not page_id or not update_fields:
+        return {"error": "page_id and update_fields are required."}
 
     url = f"https://api.notion.com/v1/pages/{page_id}"
     data = {
-        "properties": properties
+        "properties": update_fields
     }
     response = requests.patch(url, headers=HEADERS, json=data)
     return handle_response(response)
 
-# ---------------------------------------------------------------------
-
 def notion_database_query(**params):
-    expected_action = "notion_database_query"
-    if params.get("action_id") != expected_action:
-        return {"error": f"Action mismatch: expected '{expected_action}', got '{params.get('action_id')}'"}
-
-    try:
-        validated = NotionDatabaseQueryRequest(**params)
-    except ValidationError as e:
-        return {"error": e.errors()}
-
-    database_id = validated.database_id
+    database_id = params.get("database_id")
+    if not database_id:
+        return {"error": "database_id is required."}
 
     url = f"https://api.notion.com/v1/databases/{database_id}/query"
     response = requests.post(url, headers=HEADERS)
     return handle_response(response)
 
 def notion_database_delete(**body):
-    expected_action = "notion_database_delete"
-    if body.get("action_id") != expected_action:
-        return {"error": f"Action mismatch: expected '{expected_action}', got '{body.get('action_id')}'"}
-
-    try:
-        validated = NotionDatabaseDeleteRequest(**body)
-    except ValidationError as e:
-        return {"error": e.errors()}
-
-    page_id = validated.page_id
+    page_id = body.get("page_id")
+    if not page_id:
+        return {"error": "page_id is required."}
 
     url = f"https://api.notion.com/v1/pages/{page_id}"
     data = {
