@@ -1,51 +1,15 @@
 import requests
 from os import getenv
-from pydantic import BaseModel, ValidationError
+import json
 
 NOTION_API_VERSION = "2022-06-28"
 NOTION_API_KEY = getenv("NOTION_API_KEY")
 
 HEADERS = {
-    "Authorization": f"Bearer {NOTION_API_KEY}",
+    "Authorization": f"Bearer " + NOTION_API_KEY,
     "Content-Type": "application/json",
     "Notion-Version": NOTION_API_VERSION,
 }
-
-# ------------------- Pydantic Models -------------------
-
-class NotionSyncRequest(BaseModel):
-    page_id: str
-    content: str
-
-    class Config:
-        extra = "allow"
-
-class NotionFetchRequest(BaseModel):
-    page_id: str
-
-    class Config:
-        extra = "allow"
-
-class NotionCreateRequest(BaseModel):
-    parent_id: str
-    title: str
-
-    class Config:
-        extra = "allow"
-
-class NotionDatabaseQueryRequest(BaseModel):
-    database_id: str
-
-    class Config:
-        extra = "allow"
-
-class NotionDatabaseDeleteRequest(BaseModel):
-    page_id: str
-
-    class Config:
-        extra = "allow"
-
-# ------------------- Notion Functions -------------------
 
 def notion_sync(**body):
     page_id = body.get("page_id")
@@ -148,10 +112,15 @@ def notion_database_create(**body):
 
 def notion_database_update(**body):
     page_id = body.get("page_id")
-    update_fields = body.get("update_fields")
+    update_fields_str = body.get("update_fields_str")
 
-    if not page_id or not update_fields:
-        return {"error": "page_id and update_fields are required."}
+    if not page_id or not update_fields_str:
+        return {"error": "page_id and update_fields_str are required."}
+
+    try:
+        update_fields = json.loads(update_fields_str)
+    except json.JSONDecodeError:
+        return {"error": "update_fields_str is not valid JSON."}
 
     url = f"https://api.notion.com/v1/pages/{page_id}"
     data = {
@@ -180,8 +149,6 @@ def notion_database_delete(**body):
     }
     response = requests.patch(url, headers=HEADERS, json=data)
     return handle_response(response)
-
-# ------------------- Response Handler -------------------
 
 def handle_response(response):
     if response.status_code not in [200, 201]:
