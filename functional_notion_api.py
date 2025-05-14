@@ -1,12 +1,11 @@
 import requests
 from os import getenv
-import json
 
 NOTION_API_VERSION = "2022-06-28"
 NOTION_API_KEY = getenv("NOTION_API_KEY")
 
 HEADERS = {
-    "Authorization": f"Bearer " + NOTION_API_KEY,
+    "Authorization": f"Bearer {NOTION_API_KEY}",
     "Content-Type": "application/json",
     "Notion-Version": NOTION_API_VERSION,
 }
@@ -112,19 +111,14 @@ def notion_database_create(**body):
 
 def notion_database_update(**body):
     page_id = body.get("page_id")
-    update_fields_str = body.get("update_fields_str")
+    properties = body.get("properties")
 
-    if not page_id or not update_fields_str:
-        return {"error": "page_id and update_fields_str are required."}
-
-    try:
-        update_fields = json.loads(update_fields_str)
-    except json.JSONDecodeError:
-        return {"error": "update_fields_str is not valid JSON."}
+    if not page_id or not properties:
+        return {"error": "page_id and properties are required."}
 
     url = f"https://api.notion.com/v1/pages/{page_id}"
     data = {
-        "properties": update_fields
+        "properties": properties
     }
     response = requests.patch(url, headers=HEADERS, json=data)
     return handle_response(response)
