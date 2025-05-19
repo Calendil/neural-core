@@ -139,7 +139,11 @@ def notion_list_child_pages(**params):
         if not next_cursor:
             break
 
-    return {"blocks": blocks}
+    # Return all blocks raw, no filtering, full debug info
+    return {
+        "total_blocks": len(blocks),
+        "blocks": blocks
+    }
 
 def handle_response(response):
     if response.status_code not in [200, 201]:
