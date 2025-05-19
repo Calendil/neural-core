@@ -4,7 +4,7 @@ from os import getenv
 NOTION_API_VERSION = "2022-06-28"
 NOTION_API_KEY = getenv("NOTION_API_KEY")
 
-ROOT_PAGE_ID = "1f855c9970ec80cabf5fe44f51a2f511"
+ROOT_PAGE_ID = "1f855c99-70ec-81ea-a238-e28e49f300bd"
 
 HEADERS = {
     "Authorization": f"Bearer {NOTION_API_KEY}",
@@ -14,6 +14,8 @@ HEADERS = {
 
 def notion_sync(**body):
     page_id = body.get("page_id")
+    if page_id == "root":
+        page_id = ROOT_PAGE_ID
     content = body.get("content")
     if not page_id or not content:
         return {"error": "page_id and content are required."}
@@ -42,6 +44,8 @@ def notion_sync(**body):
 
 def notion_fetch(**params):
     page_id = params.get("page_id")
+    if page_id == "root":
+        page_id = ROOT_PAGE_ID
     if not page_id:
         return {"error": "page_id is required."}
 
@@ -81,6 +85,8 @@ def notion_create(**body):
 
 def notion_update(**body):
     page_id = body.get("page_id")
+    if page_id == "root":
+        page_id = ROOT_PAGE_ID
     properties = body.get("properties")
     if not page_id or not properties:
         return {"error": "page_id and properties are required."}
@@ -94,6 +100,8 @@ def notion_update(**body):
 
 def notion_delete(**body):
     page_id = body.get("page_id")
+    if page_id == "root":
+        page_id = ROOT_PAGE_ID
     if not page_id:
         return {"error": "page_id is required."}
 
@@ -106,6 +114,8 @@ def notion_delete(**body):
 
 def notion_list_child_pages(**params):
     root_page_id = params.get("page_id")
+    if root_page_id == "root":
+        root_page_id = ROOT_PAGE_ID
     if not root_page_id:
         return {"error": "page_id is required."}
 
