@@ -75,44 +75,9 @@ def notion_create(**body):
     response = requests.post(url, headers=HEADERS, json=data)
     return handle_response(response)
 
-def notion_database_create(**body):
-    parent_id = body.get("parent_id")
-    title = body.get("title")
-    properties = body.get("properties")
-
-    if not parent_id or not title:
-        return {"error": "parent_id and title are required."}
-
-    if not properties:
-        properties = {
-            "Name": {
-                "title": {}
-            }
-        }
-
-    url = "https://api.notion.com/v1/databases"
-    data = {
-        "parent": {
-            "type": "page_id",
-            "page_id": parent_id
-        },
-        "title": [
-            {
-                "type": "text",
-                "text": {
-                    "content": title
-                }
-            }
-        ],
-        "properties": properties
-    }
-    response = requests.post(url, headers=HEADERS, json=data)
-    return handle_response(response)
-
-def notion_database_update(**body):
+def notion_update(**body):
     page_id = body.get("page_id")
     properties = body.get("properties")
-
     if not page_id or not properties:
         return {"error": "page_id and properties are required."}
 
@@ -123,16 +88,7 @@ def notion_database_update(**body):
     response = requests.patch(url, headers=HEADERS, json=data)
     return handle_response(response)
 
-def notion_database_query(**params):
-    database_id = params.get("database_id")
-    if not database_id:
-        return {"error": "database_id is required."}
-
-    url = f"https://api.notion.com/v1/databases/{database_id}/query"
-    response = requests.post(url, headers=HEADERS)
-    return handle_response(response)
-
-def notion_database_delete(**body):
+def notion_delete(**body):
     page_id = body.get("page_id")
     if not page_id:
         return {"error": "page_id is required."}
@@ -143,6 +99,28 @@ def notion_database_delete(**body):
     }
     response = requests.patch(url, headers=HEADERS, json=data)
     return handle_response(response)
+
+def notion_list_child_pages(**params):
+    root_page_id = params.get("page_id")
+    if not root_page_id:
+        return {"error": "page_id is required."}
+
+    url = f"https://api.notion.com/v1/blocks/{root_page_id}/children"
+    response = requests.get(url, headers=HEADERS)
+
+    if response.status_code != 200:
+        return {"error": response.text, "status_code": response.status_code}
+
+    blocks = response.json().get("results", [])
+    pages = []
+    for block in blocks:
+        if block.get("type") == "child_page":
+            pages.append({
+                "id": block.get("id"),
+                "title": block.get("child_page", {}).get("title")
+            })
+
+    return {"child_pages": pages}
 
 def handle_response(response):
     if response.status_code not in [200, 201]:
