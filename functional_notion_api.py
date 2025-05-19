@@ -119,14 +119,27 @@ def notion_list_child_pages(**params):
     if not root_page_id:
         return {"error": "page_id is required."}
 
-    url = f"https://api.notion.com/v1/blocks/{root_page_id}/children"
-    response = requests.get(url, headers=HEADERS)
+    blocks = []
+    next_cursor = None
 
-    # Return full JSON response for debugging
-    return {
-        "status_code": response.status_code,
-        "raw_response": response.json()
-    }
+    while True:
+        url = f"https://api.notion.com/v1/blocks/{root_page_id}/children"
+        query_params = {}
+        if next_cursor:
+            query_params["start_cursor"] = next_cursor
+
+        response = requests.get(url, headers=HEADERS, params=query_params)
+        if response.status_code != 200:
+            return {"error": response.text, "status_code": response.status_code}
+
+        data = response.json()
+        blocks.extend(data.get("results", []))
+        next_cursor = data.get("next_cursor")
+
+        if not next_cursor:
+            break
+
+    return {"blocks": blocks}
 
 def handle_response(response):
     if response.status_code not in [200, 201]:
