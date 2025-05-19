@@ -4,6 +4,8 @@ from os import getenv
 NOTION_API_VERSION = "2022-06-28"
 NOTION_API_KEY = getenv("NOTION_API_KEY")
 
+ROOT_PAGE_ID = "1f855c9970ec80cabf5fe44f51a2f511"
+
 HEADERS = {
     "Authorization": f"Bearer {NOTION_API_KEY}",
     "Content-Type": "application/json",
@@ -49,6 +51,8 @@ def notion_fetch(**params):
 
 def notion_create(**body):
     parent_id = body.get("parent_id")
+    if parent_id == "root":
+        parent_id = ROOT_PAGE_ID
     title = body.get("title")
     if not parent_id or not title:
         return {"error": "parent_id and title are required."}
