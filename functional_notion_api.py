@@ -122,27 +122,11 @@ def notion_list_child_pages(**params):
     url = f"https://api.notion.com/v1/blocks/{root_page_id}/children"
     response = requests.get(url, headers=HEADERS)
 
-    if response.status_code != 200:
-        return {"error": response.text, "status_code": response.status_code}
-
-    blocks = response.json().get("results", [])
-    blocks_info = []
-    for block in blocks:
-        block_type = block.get("type")
-        title = None
-        if block_type == "child_page":
-            title = block.get("child_page", {}).get("title")
-        elif block_type == "heading_1":
-            title = block.get("heading_1", {}).get("text", [{}])[0].get("plain_text")
-        # Add other block types as needed here
-
-        blocks_info.append({
-            "id": block.get("id"),
-            "type": block_type,
-            "title": title
-        })
-
-    return {"blocks": blocks_info}
+    # Return full JSON response for debugging
+    return {
+        "status_code": response.status_code,
+        "raw_response": response.json()
+    }
 
 def handle_response(response):
     if response.status_code not in [200, 201]:
