@@ -4,7 +4,6 @@ from os import getenv
 NOTION_API_VERSION = "2022-06-28"
 NOTION_API_KEY = getenv("NOTION_API_KEY")
 
-# Correct root page ID
 ROOT_PAGE_ID = "1f855c99-70ec-80ca-bf5f-e44f51a2f511"
 
 HEADERS = {
@@ -140,7 +139,6 @@ def notion_list_child_pages(**params):
         if not next_cursor:
             break
 
-    # Return all blocks raw, no filtering, full debug info
     return {
         "total_blocks": len(blocks),
         "blocks": blocks
@@ -160,6 +158,42 @@ def notion_get_page_metadata(**params):
         return {"error": response.text, "status_code": response.status_code}
 
     return response.json()
+
+def notion_recursive_list_pages(page_id=None, visited=None):
+    if visited is None:
+        visited = set()
+
+    if page_id is None or page_id == "root":
+        page_id = ROOT_PAGE_ID
+
+    if page_id in visited:
+        return []
+
+    visited.add(page_id)
+
+    url_blocks = f"https://api.notion.com/v1/blocks/{page_id}/children"
+    response_blocks = requests.get(url_blocks, headers=HEADERS)
+    if response_blocks.status_code != 200:
+        return {"error": response_blocks.text, "status_code": response_blocks.status_code}
+
+    blocks = response_blocks.json().get("results", [])
+    pages = []
+
+    for block in blocks:
+        if block.get("type") == "child_page":
+            child_id = block.get("id")
+            # Fetch metadata of the child page
+            url_page = f"https://api.notion.com/v1/pages/{child_id}"
+            response_page = requests.get(url_page, headers=HEADERS)
+            if response_page.status_code == 200:
+                page_data = response_page.json()
+                pages.append(page_data)
+                # Recursively get pages under this child page
+                pages.extend(notion_recursive_list_pages(child_id, visited))
+            else:
+                pages.append({"error": f"Failed to fetch metadata for page {child_id}"})
+
+    return pages
 
 def handle_response(response):
     if response.status_code not in [200, 201]:
