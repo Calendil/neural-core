@@ -4,7 +4,8 @@ from os import getenv
 NOTION_API_VERSION = "2022-06-28"
 NOTION_API_KEY = getenv("NOTION_API_KEY")
 
-ROOT_PAGE_ID = "1f855c99-70ec-81ea-a238-e28e49f300bd"
+# Correct root page ID
+ROOT_PAGE_ID = "1f855c99-70ec-80ca-bf5f-e44f51a2f511"
 
 HEADERS = {
     "Authorization": f"Bearer {NOTION_API_KEY}",
