@@ -145,6 +145,21 @@ def notion_list_child_pages(**params):
         "blocks": blocks
     }
 
+def notion_get_page_metadata(**params):
+    page_id = params.get("page_id")
+    if page_id == "root":
+        page_id = ROOT_PAGE_ID
+    if not page_id:
+        return {"error": "page_id is required."}
+
+    url = f"https://api.notion.com/v1/pages/{page_id}"
+    response = requests.get(url, headers=HEADERS)
+
+    if response.status_code != 200:
+        return {"error": response.text, "status_code": response.status_code}
+
+    return response.json()
+
 def handle_response(response):
     if response.status_code not in [200, 201]:
         return {"error": response.text, "status_code": response.status_code}
