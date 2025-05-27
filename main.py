@@ -69,9 +69,10 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
-# Explicit route for section update outside dynamic bridge:
+# Explicit route for section update endpoint outside dynamic bridge:
 from functional_notion_api import notion_section_update
 
 @app.post("/bridge/notion/section_update")
 async def bridge_notion_section_update(request: Request):
-    return await notion_section_update(await request.json())
+    body = await request.json()
+    return notion_section_update(**body)
