@@ -12,7 +12,105 @@ HEADERS = {
     "Notion-Version": NOTION_API_VERSION,
 }
 
-# Existing functions omitted for brevity, please keep all previous functions here unchanged
+def notion_sync(**body):
+    page_id = body.get("page_id")
+    if page_id == "root":
+        page_id = ROOT_PAGE_ID
+    content = body.get("content")
+    if not page_id or not content:
+        return {"error": "page_id and content are required."}
+
+    url = f"https://api.notion.com/v1/blocks/{page_id}/children"
+    data = {
+        "children": [
+            {
+                "object": "block",
+                "type": "paragraph",
+                "paragraph": {
+                    "rich_text": [
+                        {
+                            "type": "text",
+                            "text": {
+                                "content": content
+                            }
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+    response = requests.patch(url, headers=HEADERS, json=data)
+    return handle_response(response)
+
+def notion_fetch(**params):
+    page_id = params.get("page_id")
+    if page_id == "root":
+        page_id = ROOT_PAGE_ID
+    if not page_id:
+        return {"error": "page_id is required."}
+
+    url = f"https://api.notion.com/v1/blocks/{page_id}/children"
+    response = requests.get(url, headers=HEADERS)
+    return handle_response(response)
+
+def notion_create(**body):
+    parent_id = body.get("parent_id")
+    if parent_id == "root":
+        parent_id = ROOT_PAGE_ID
+    title = body.get("title")
+    if not parent_id or not title:
+        return {"error": "parent_id and title are required."}
+
+    url = "https://api.notion.com/v1/pages"
+    data = {
+        "parent": {
+            "type": "page_id",
+            "page_id": parent_id
+        },
+        "properties": {
+            "title": {
+                "title": [
+                    {
+                        "type": "text",
+                        "text": {
+                            "content": title
+                        }
+                    }
+                ]
+            }
+        }
+    }
+    response = requests.post(url, headers=HEADERS, json=data)
+    return handle_response(response)
+
+def notion_update(**body):
+    page_id = body.get("page_id")
+    if page_id == "root":
+        page_id = ROOT_PAGE_ID
+    properties = body.get("properties")
+    if not page_id or not properties:
+        return {"error": "page_id and properties are required."}
+
+    url = f"https://api.notion.com/v1/pages/{page_id}"
+    data = {
+        "properties": properties
+    }
+    response = requests.patch(url, headers=HEADERS, json=data)
+    return handle_response(response)
+
+def notion_delete(**body):
+    page_id = body.get("page_id")
+    if page_id == "root":
+        page_id = ROOT_PAGE_ID
+    if not page_id:
+        return {"error": "page_id is required."}
+
+    url = f"https://api.notion.com/v1/pages/{page_id}"
+    data = {
+        "archived": True
+    }
+    response = requests.patch(url, headers=HEADERS, json=data)
+    return handle_response(response)
 
 def notion_section_update(**body):
     """
@@ -33,16 +131,12 @@ def notion_section_update(**body):
     if not parent_id or not section_title:
         return {"error": "parent_id and section_title are required."}
 
-    # Step 1: Get all blocks of the parent page
     url_children = f"https://api.notion.com/v1/blocks/{parent_id}/children"
     response = requests.get(url_children, headers=HEADERS)
     if response.status_code != 200:
         return {"error": response.text, "status_code": response.status_code}
     blocks = response.json().get("results", [])
 
-    # Step 2: Find blocks belonging to the section (starting at title block)
-    # We assume title block is heading_1, heading_2, or heading_3 matching section_title
-    # Collect blocks to delete (the section)
     to_delete = []
     in_section = False
     for block in blocks:
@@ -62,7 +156,6 @@ def notion_section_update(**body):
         elif in_section:
             to_delete.append(block)
 
-    # Step 3: Archive blocks in to_delete to remove the section
     for block in to_delete:
         block_id = block.get("id")
         url_archive = f"https://api.notion.com/v1/blocks/{block_id}"
@@ -71,7 +164,6 @@ def notion_section_update(**body):
         if r.status_code not in [200, 204]:
             return {"error": f"Failed to archive block {block_id}: {r.text}"}
 
-    # Step 4: Build new section blocks including title block at the start
     section_blocks = [
         {
             "object": "block",
@@ -87,7 +179,6 @@ def notion_section_update(**body):
         }
     ] + new_blocks
 
-    # Step 5: Append new blocks as children to the parent page
     url_append = f"https://api.notion.com/v1/blocks/{parent_id}/children"
     append_data = {"children": section_blocks}
     r_append = requests.patch(url_append, headers=HEADERS, json=append_data)
@@ -95,3 +186,8 @@ def notion_section_update(**body):
         return {"error": f"Failed to append new section blocks: {r_append.text}", "status_code": r_append.status_code}
 
     return {"status": "success", "detail": r_append.json()}
+
+def handle_response(response):
+    if response.status_code not in [200, 201]:
+        return {"error": response.text, "status_code": response.status_code}
+    return {"status": "success", "detail": response.json()}
