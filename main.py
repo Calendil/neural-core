@@ -38,16 +38,22 @@ async def notion_dynamic_bridge(action: str, request: Request):
             body = {}
         # Add action_id for internal verification
         body["action_id"] = func_name
-        return func(**body)
+        return await maybe_await(func, **body)
 
     elif request.method == "GET":
         params = dict(request.query_params)
         # Add action_id for internal verification
         params["action_id"] = func_name
-        return func(**params)
+        return await maybe_await(func, **params)
 
     else:
         raise HTTPException(status_code=405, detail="Method not allowed.")
+
+async def maybe_await(func, *args, **kwargs):
+    result = func(*args, **kwargs)
+    if hasattr(result, "__await__"):
+        return await result
+    return result
 
 def custom_openapi():
     openapi_schema = get_openapi(
@@ -62,3 +68,9 @@ def custom_openapi():
     return openapi_schema
 
 app.openapi = custom_openapi
+
+# New explicit route for parse_sections endpoint
+from functional_notion_api import notion_parse_sections
+@app.post("/bridge/notion/notion_parse_sections")
+async def bridge_notion_parse_sections(request: Request):
+    return await notion_parse_sections(request)
