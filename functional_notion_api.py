@@ -279,4 +279,18 @@ def notion_update(**body):
 def notion_delete(**body):
     page_id = body.get("page_id")
     if page_id == "root":
-        page
+        page_id = ROOT_PAGE_ID
+    if not page_id:
+        return {"error": "page_id is required."}
+
+    url = f"https://api.notion.com/v1/pages/{page_id}"
+    data = {
+        "archived": True
+    }
+    response = requests.patch(url, headers=HEADERS, json=data)
+    return handle_response(response)
+
+def handle_response(response):
+    if response.status_code not in [200, 201]:
+        return {"error": response.text, "status_code": response.status_code}
+    return {"status": "success", "detail": response.json()}
