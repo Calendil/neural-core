@@ -69,8 +69,9 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
-# New explicit route for parse_sections endpoint
-from functional_notion_api import notion_parse_sections
-@app.post("/bridge/notion/notion_parse_sections")
-async def bridge_notion_parse_sections(request: Request):
-    return await notion_parse_sections(request)
+# Explicit route for section update outside dynamic bridge:
+from functional_notion_api import notion_section_update
+
+@app.post("/bridge/notion/section_update")
+async def bridge_notion_section_update(request: Request):
+    return await notion_section_update(await request.json())
