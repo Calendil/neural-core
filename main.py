@@ -36,13 +36,11 @@ async def notion_dynamic_bridge(action: str, request: Request):
             body = await request.json()
         except Exception:
             body = {}
-        # Add action_id for internal verification
         body["action_id"] = func_name
         return await maybe_await(func, **body)
 
     elif request.method == "GET":
         params = dict(request.query_params)
-        # Add action_id for internal verification
         params["action_id"] = func_name
         return await maybe_await(func, **params)
 
@@ -58,8 +56,8 @@ async def maybe_await(func, *args, **kwargs):
 def custom_openapi():
     openapi_schema = get_openapi(
         title="GPT Beyond Neural Core API",
-        version="0.3.0",
-        description="Universal Dynamic Bridge API for Notion integrations.",
+        version="1.0.0",
+        description="Bridge API for Notion page operations (non-database only).",
         routes=app.routes,
     )
     openapi_schema["servers"] = [
@@ -69,10 +67,9 @@ def custom_openapi():
 
 app.openapi = custom_openapi
 
-# Explicit route for section update endpoint outside dynamic bridge:
 from functional_notion_api import notion_section_update
 
-@app.post("/bridge/notion/section_update")
+@app.post("/bridge/notion/notion_section_update")
 async def bridge_notion_section_update(request: Request):
     body = await request.json()
     return notion_section_update(**body)
