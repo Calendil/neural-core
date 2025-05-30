@@ -1,5 +1,4 @@
 from fastapi import FastAPI, HTTPException, Request
-import os
 from fastapi.openapi.utils import get_openapi
 
 app = FastAPI(openapi_version="3.1.0")
@@ -8,27 +7,18 @@ app = FastAPI(openapi_version="3.1.0")
 def read_root():
     return {"message": "Bridge API is live."}
 
-@app.get("/list-files")
-def list_files():
-    files = os.listdir(".")
-    return {"files": files}
-
 @app.api_route("/bridge/notion/{action}", methods=["GET", "POST"])
 async def notion_dynamic_bridge(action: str, request: Request):
-    if not action.startswith("notion"):
-        raise HTTPException(status_code=400, detail=f"Action '{action}' is not a Notion-related action.")
+    if action not in ["notion_create", "notion_append_blocks"]:
+        raise HTTPException(status_code=400, detail=f"Unsupported action '{action}'.")
 
     from functional_notion_api import __dict__ as notion_funcs
-    func_name = action.replace("-", "_")
-    func = notion_funcs.get(func_name)
-
-    if func is None:
-        raise HTTPException(status_code=400, detail=f"No handler found for action '{action}' in functional_notion_api.")
+    func = notion_funcs.get(action)
 
     if not callable(func):
         raise HTTPException(
             status_code=400,
-            detail=f"Handler '{func_name}' exists but is not callable (type: {type(func).__name__})."
+            detail=f"Handler '{action}' is not callable or not found."
         )
 
     if request.method == "POST":
@@ -36,12 +26,10 @@ async def notion_dynamic_bridge(action: str, request: Request):
             body = await request.json()
         except Exception:
             body = {}
-        body["action_id"] = func_name
         return await maybe_await(func, **body)
 
     elif request.method == "GET":
         params = dict(request.query_params)
-        params["action_id"] = func_name
         return await maybe_await(func, **params)
 
     else:
@@ -57,7 +45,7 @@ def custom_openapi():
     openapi_schema = get_openapi(
         title="GPT Beyond Neural Core API",
         version="1.0.0",
-        description="Bridge API for Notion page operations (non-database only).",
+        description="Bridge API for Notion page and block creation only.",
         routes=app.routes,
     )
     openapi_schema["servers"] = [
@@ -66,10 +54,3 @@ def custom_openapi():
     return openapi_schema
 
 app.openapi = custom_openapi
-
-from functional_notion_api import notion_section_update
-
-@app.post("/bridge/notion/notion_section_update")
-async def bridge_notion_section_update(request: Request):
-    body = await request.json()
-    return notion_section_update(**body)
