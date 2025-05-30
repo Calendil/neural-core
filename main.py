@@ -9,16 +9,20 @@ def read_root():
 
 @app.api_route("/bridge/notion/{action}", methods=["GET", "POST"])
 async def notion_dynamic_bridge(action: str, request: Request):
-    if action not in ["notion_create", "notion_append_blocks"]:
-        raise HTTPException(status_code=400, detail=f"Unsupported action '{action}'.")
+    from functional_notion_crud import __dict__ as notion_funcs
 
-    from functional_notion_api import __dict__ as notion_funcs
-    func = notion_funcs.get(action)
+    # Smart prefix logic
+    SMART_PREFIX = "notion_crud_"
+    if action.startswith(SMART_PREFIX):
+        stripped_action = action[len(SMART_PREFIX):]
+    else:
+        stripped_action = action
 
+    func = notion_funcs.get(stripped_action)
     if not callable(func):
         raise HTTPException(
             status_code=400,
-            detail=f"Handler '{action}' is not callable or not found."
+            detail=f"Handler '{stripped_action}' is not callable or not found."
         )
 
     if request.method == "POST":
@@ -32,8 +36,7 @@ async def notion_dynamic_bridge(action: str, request: Request):
         params = dict(request.query_params)
         return await maybe_await(func, **params)
 
-    else:
-        raise HTTPException(status_code=405, detail="Method not allowed.")
+    raise HTTPException(status_code=405, detail="Method not allowed.")
 
 async def maybe_await(func, *args, **kwargs):
     result = func(*args, **kwargs)
