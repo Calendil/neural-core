@@ -1,9 +1,10 @@
 import requests
-import re
 from os import getenv
+import re
 
 NOTION_API_VERSION = "2022-06-28"
 NOTION_API_KEY = getenv("NOTION_API_KEY")
+
 ROOT_PAGE_ID = "1f855c99-70ec-80ca-bf5f-e44f51a2f511"
 
 HEADERS = {
@@ -12,82 +13,150 @@ HEADERS = {
     "Notion-Version": NOTION_API_VERSION,
 }
 
-def parse_markdown_to_notion_blocks(text):
-    def create_block(block_type, content):
-        return {
-            "object": "block",
-            "type": block_type,
-            block_type: {
-                "text": [{"type": "text", "text": {"content": content}}]
-            }
-        }
+def rich_text_block(content):
+    return [{"type": "text", "text": {"content": content}}]
 
+def parse_markdown_to_notion_blocks(text):
+    """
+    Parse markdown-like text into a list of Notion block JSON objects.
+    Supports:
+    - Headings (#, ##, ###)
+    - Bullet lists (-, *)
+    - Numbered lists (1., 2., ...)
+    - Paragraphs (plain text)
+    """
     lines = text.splitlines()
     blocks = []
-    i, n = 0, len(lines)
+    i = 0
+    n = len(lines)
 
     while i < n:
         line = lines[i].rstrip()
 
-        for pattern, block_type in [
-            (r"^# (.+)", "heading_1"),
-            (r"^## (.+)", "heading_2"),
-            (r"^### (.+)", "heading_3")
-        ]:
-            match = re.match(pattern, line)
-            if match:
-                blocks.append(create_block(block_type, match.group(1)))
-                i += 1
-                break
-        else:
-            if re.match(r"^\d+\. (.+)", line):
-                pattern, block_type = r"^\d+\. (.+)", "numbered_list_item"
-            elif re.match(r"^[-*] (.+)", line):
-                pattern, block_type = r"^[-*] (.+)", "bulleted_list_item"
-            else:
-                pattern, block_type = None, "paragraph"
+        if re.match(r"^# (.+)", line):
+            content = re.match(r"^# (.+)", line).group(1)
+            blocks.append({
+                "object": "block",
+                "type": "heading_1",
+                "heading_1": {
+                    "rich_text": rich_text_block(content)
+                }
+            })
+            i += 1
+            continue
 
-            if pattern:
-                items = []
-                while i < n and re.match(pattern, lines[i].rstrip()):
-                    content = re.match(pattern, lines[i].rstrip()).group(1)
-                    items.append(create_block(block_type, content))
-                    i += 1
-                blocks.extend(items)
-            elif line.strip():
-                blocks.append(create_block("paragraph", line))
+        if re.match(r"^## (.+)", line):
+            content = re.match(r"^## (.+)", line).group(1)
+            blocks.append({
+                "object": "block",
+                "type": "heading_2",
+                "heading_2": {
+                    "rich_text": rich_text_block(content)
+                }
+            })
+            i += 1
+            continue
+
+        if re.match(r"^### (.+)", line):
+            content = re.match(r"^### (.+)", line).group(1)
+            blocks.append({
+                "object": "block",
+                "type": "heading_3",
+                "heading_3": {
+                    "rich_text": rich_text_block(content)
+                }
+            })
+            i += 1
+            continue
+
+        if re.match(r"^\d+\. (.+)", line):
+            items = []
+            while i < n and re.match(r"^\d+\. (.+)", lines[i].rstrip()):
+                content = re.match(r"^\d+\. (.+)", lines[i].rstrip()).group(1)
+                items.append({
+                    "object": "block",
+                    "type": "numbered_list_item",
+                    "numbered_list_item": {
+                        "rich_text": rich_text_block(content)
+                    }
+                })
                 i += 1
-            else:
+            blocks.extend(items)
+            continue
+
+        if re.match(r"^[-*] (.+)", line):
+            items = []
+            while i < n and re.match(r"^[-*] (.+)", lines[i].rstrip()):
+                content = re.match(r"^[-*] (.+)", lines[i].rstrip()).group(1)
+                items.append({
+                    "object": "block",
+                    "type": "bulleted_list_item",
+                    "bulleted_list_item": {
+                        "rich_text": rich_text_block(content)
+                    }
+                })
                 i += 1
+            blocks.extend(items)
+            continue
+
+        if line.strip():
+            blocks.append({
+                "object": "block",
+                "type": "paragraph",
+                "paragraph": {
+                    "rich_text": rich_text_block(line)
+                }
+            })
+
+        i += 1
 
     return blocks
 
 def notion_create(**body):
-    parent_id = ROOT_PAGE_ID if body.get("parent_id") == "root" else body.get("parent_id")
+    parent_id = body.get("parent_id")
+    if parent_id == "root":
+        parent_id = ROOT_PAGE_ID
     title = body.get("title")
     if not parent_id or not title:
         return {"error": "parent_id and title are required."}
 
+    url = "https://api.notion.com/v1/pages"
     data = {
-        "parent": {"type": "page_id", "page_id": parent_id},
+        "parent": {
+            "type": "page_id",
+            "page_id": parent_id
+        },
         "properties": {
             "title": {
-                "title": [{"type": "text", "text": {"content": title}}]
+                "title": [
+                    {
+                        "type": "text",
+                        "text": {
+                            "content": title
+                        }
+                    }
+                ]
             }
         }
     }
-    response = requests.post("https://api.notion.com/v1/pages", headers=HEADERS, json=data)
+    response = requests.post(url, headers=HEADERS, json=data)
     return handle_response(response)
 
 def notion_append_blocks(**body):
-    page_id = ROOT_PAGE_ID if body.get("page_id") == "root" else body.get("page_id")
+    page_id = body.get("page_id")
+    if page_id == "root":
+        page_id = ROOT_PAGE_ID
     content = body.get("content")
     if not page_id or not content:
         return {"error": "page_id and content are required."}
 
     blocks = parse_markdown_to_notion_blocks(content)
+
     url = f"https://api.notion.com/v1/blocks/{page_id}/children"
-    response = requests.patch(url, headers=HEADERS, json={"children": blocks})
+    data = {
+        "children": blocks
+    }
+    response = requests.patch(url, headers=HEADERS, json=data)
     return handle_response(response)
 
 def handle_response(response):
