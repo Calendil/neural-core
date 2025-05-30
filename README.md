@@ -20,7 +20,7 @@ Memory DB: On Hold
 
 Notion Sync: In Progress
 
-SQL Execution: Active
+SQL Execution: On Hold
 
 Quick Start:
 
