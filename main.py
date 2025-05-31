@@ -3,9 +3,11 @@ from fastapi.openapi.utils import get_openapi
 
 app = FastAPI(openapi_version="3.1.0")
 
+
 @app.get("/")
 def read_root():
     return {"message": "Bridge API is live."}
+
 
 @app.api_route("/bridge/notion/{action}", methods=["GET", "POST"])
 async def notion_dynamic_bridge(action: str, request: Request):
@@ -37,6 +39,7 @@ async def notion_dynamic_bridge(action: str, request: Request):
 
     raise HTTPException(status_code=405, detail="Method not allowed.")
 
+
 @app.api_route("/bridge/render_ops/{action}", methods=["POST"])
 async def render_ops_bridge(action: str):
     from functional_render_ops import __dict__ as render_funcs
@@ -56,11 +59,22 @@ async def render_ops_bridge(action: str):
 
     return await maybe_await(func)
 
+
+@app.get("/test/render")
+async def test_render_dispatch():
+    from functional_render_ops import __dict__ as render_funcs
+    func = render_funcs.get("trigger_manual_deploy")
+    if not callable(func):
+        raise HTTPException(status_code=500, detail="Deploy function not found.")
+    return await maybe_await(func)
+
+
 async def maybe_await(func, *args, **kwargs):
     result = func(*args, **kwargs)
     if hasattr(result, "__await__"):
         return await result
     return result
+
 
 def custom_openapi():
     openapi_schema = get_openapi(
@@ -73,5 +87,6 @@ def custom_openapi():
         {"url": "https://neural-core.onrender.com"}
     ]
     return openapi_schema
+
 
 app.openapi = custom_openapi
