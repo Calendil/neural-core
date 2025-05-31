@@ -4,7 +4,7 @@ from fastapi.openapi.utils import get_openapi
 app = FastAPI(openapi_version="3.1.0")
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def read_root():
     return {"message": "Bridge API is live."}
 
