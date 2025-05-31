@@ -69,6 +69,22 @@ async def test_render_dispatch():
     return await maybe_await(func)
 
 
+@app.get("/test/render-web")
+async def test_render_web_probe(request: Request):
+    from functional_render_ops import __dict__ as render_funcs
+    func = render_funcs.get("trigger_manual_deploy")
+    if not callable(func):
+        raise HTTPException(status_code=500, detail="Deploy function not found.")
+
+    headers = dict(request.headers)
+    result = await maybe_await(func)
+
+    return {
+        "caller_headers": headers,
+        "deploy_result": result
+    }
+
+
 async def maybe_await(func, *args, **kwargs):
     result = func(*args, **kwargs)
     if hasattr(result, "__await__"):
