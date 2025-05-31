@@ -11,7 +11,6 @@ def read_root():
 async def notion_dynamic_bridge(action: str, request: Request):
     from functional_notion_crud import __dict__ as notion_funcs
 
-    # Smart prefix logic
     SMART_PREFIX = "notion_crud_"
     if action.startswith(SMART_PREFIX):
         stripped_action = action[len(SMART_PREFIX):]
@@ -38,6 +37,25 @@ async def notion_dynamic_bridge(action: str, request: Request):
 
     raise HTTPException(status_code=405, detail="Method not allowed.")
 
+@app.api_route("/bridge/render_ops/{action}", methods=["POST"])
+async def render_ops_bridge(action: str):
+    from functional_render_ops import __dict__ as render_funcs
+
+    SMART_PREFIX = "render_ops_"
+    if action.startswith(SMART_PREFIX):
+        stripped_action = action[len(SMART_PREFIX):]
+    else:
+        stripped_action = action
+
+    func = render_funcs.get(stripped_action)
+    if not callable(func):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Handler '{stripped_action}' is not callable or not found."
+        )
+
+    return await maybe_await(func)
+
 async def maybe_await(func, *args, **kwargs):
     result = func(*args, **kwargs)
     if hasattr(result, "__await__"):
@@ -48,7 +66,7 @@ def custom_openapi():
     openapi_schema = get_openapi(
         title="GPT Beyond Neural Core API",
         version="1.0.0",
-        description="Bridge API for Notion page and block creation only.",
+        description="Bridge API for Notion page and Render operations.",
         routes=app.routes,
     )
     openapi_schema["servers"] = [
