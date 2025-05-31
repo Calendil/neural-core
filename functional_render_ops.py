@@ -24,9 +24,12 @@ async def trigger_manual_deploy():
             try:
                 json_data = response.json()
             except Exception:
-                json_data = {"error": "Response is not valid JSON", "raw": response.text}
+                json_data = {
+                    "error": "Response is not valid JSON",
+                    "raw": response.text
+                }
 
-            if response.status_code != 201 and response.status_code != 200:
+            if response.status_code not in [200, 201]:
                 return {
                     "status": "error",
                     "message": f"Unexpected status: {response.status_code}",
@@ -38,6 +41,14 @@ async def trigger_manual_deploy():
                 "message": "Deployment triggered successfully.",
                 "details": json_data
             }
+
+    except httpx.HTTPStatusError as e:
+        return {
+            "status": "error",
+            "message": f"Failed with status {e.response.status_code}",
+            "details": e.response.text,
+            "traceback": traceback.format_exc()
+        }
 
     except Exception as e:
         return {
