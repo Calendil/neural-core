@@ -159,6 +159,57 @@ def notion_append_blocks(**body):
     except Exception as e:
         return {"error": f"Exception occurred while appending blocks: {str(e)}"}
 
+def notion_fetch(**params):
+    page_id = params.get("page_id")
+    if page_id == "root":
+        page_id = ROOT_PAGE_ID
+    if not page_id:
+        return {"error": "page_id is required."}
+
+    url = f"https://api.notion.com/v1/blocks/{page_id}/children"
+    try:
+        response = requests.get(url, headers=HEADERS)
+        return handle_response(response)
+    except Exception as e:
+        return {"error": f"Exception during fetch: {str(e)}"}
+
+def notion_update(**body):
+    page_id = body.get("page_id")
+    if page_id == "root":
+        page_id = ROOT_PAGE_ID
+    properties = body.get("properties")
+    if not page_id or not properties:
+        return {"error": "page_id and properties are required."}
+
+    url = f"https://api.notion.com/v1/pages/{page_id}"
+    data = {
+        "properties": properties
+    }
+
+    try:
+        response = requests.patch(url, headers=HEADERS, json=data)
+        return handle_response(response)
+    except Exception as e:
+        return {"error": f"Exception during update: {str(e)}"}
+
+def notion_delete(**body):
+    page_id = body.get("page_id")
+    if page_id == "root":
+        page_id = ROOT_PAGE_ID
+    if not page_id:
+        return {"error": "page_id is required."}
+
+    url = f"https://api.notion.com/v1/pages/{page_id}"
+    data = {
+        "archived": True
+    }
+
+    try:
+        response = requests.patch(url, headers=HEADERS, json=data)
+        return handle_response(response)
+    except Exception as e:
+        return {"error": f"Exception during delete: {str(e)}"}
+
 def handle_response(response):
     if response.status_code not in [200, 201]:
         return {"error": response.text, "status_code": response.status_code}
