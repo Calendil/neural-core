@@ -1,4 +1,5 @@
 import httpx
+import traceback
 
 # Hardcoded credentials for Render (ensure this is secured in production)
 RENDER_API_KEY = "rnd_GSVYe0xfbdhpwpK2XaLjZUAexvbh"
@@ -29,10 +30,12 @@ async def trigger_manual_deploy():
         return {
             "status": "error",
             "message": f"Failed with status {e.response.status_code}",
-            "details": e.response.text
+            "details": e.response.text,
+            "traceback": traceback.format_exc()
         }
     except Exception as e:
         return {
             "status": "error",
-            "message": str(e)
+            "message": str(e),
+            "traceback": traceback.format_exc()
         }
