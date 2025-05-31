@@ -20,19 +20,25 @@ async def trigger_manual_deploy():
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(RENDER_DEPLOY_ENDPOINT, headers=HEADERS)
-            response.raise_for_status()
+
+            try:
+                json_data = response.json()
+            except Exception:
+                json_data = {"error": "Response is not valid JSON", "raw": response.text}
+
+            if response.status_code != 201 and response.status_code != 200:
+                return {
+                    "status": "error",
+                    "message": f"Unexpected status: {response.status_code}",
+                    "details": json_data
+                }
+
             return {
                 "status": "success",
                 "message": "Deployment triggered successfully.",
-                "details": response.json()
+                "details": json_data
             }
-    except httpx.HTTPStatusError as e:
-        return {
-            "status": "error",
-            "message": f"Failed with status {e.response.status_code}",
-            "details": e.response.text,
-            "traceback": traceback.format_exc()
-        }
+
     except Exception as e:
         return {
             "status": "error",
