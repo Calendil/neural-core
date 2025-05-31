@@ -1,4 +1,6 @@
-def notion_replace_block(**body):
+# All unchanged imports and helper definitions above...
+
+def replace_block(**body):
     page_id = body.get("page_id", "root")
     match_text = body.get("match_text", "").strip()
     new_block_type = body.get("new_block_type")
@@ -22,7 +24,6 @@ def notion_replace_block(**body):
             }
         }
 
-    # Fetch all child blocks
     try:
         resp = requests.get(f"https://api.notion.com/v1/blocks/{page_id}/children", headers=HEADERS)
         if resp.status_code != 200:
@@ -31,7 +32,6 @@ def notion_replace_block(**body):
     except Exception as e:
         return {"error": f"Exception during fetch: {str(e)}"}
 
-    # Build new block list with replacement
     updated_blocks = []
     replaced = False
     for block in original_blocks:
@@ -44,7 +44,6 @@ def notion_replace_block(**body):
     if not replaced:
         return {"error": f"No block matched text: '{match_text}'"}
 
-    # Archive all original blocks
     for block in original_blocks:
         try:
             requests.patch(
@@ -53,9 +52,8 @@ def notion_replace_block(**body):
                 json={"archived": True}
             )
         except:
-            pass  # Continue even if one block fails
+            pass
 
-    # Append updated blocks
     try:
         append = requests.patch(
             f"https://api.notion.com/v1/blocks/{page_id}/children",
